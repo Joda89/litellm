@@ -194,6 +194,8 @@ from .llms.deprecated_providers import aleph_alpha, palm
 from .llms.gemini.common_utils import get_api_key_from_env
 from .llms.groq.chat.handler import GroqChatCompletion
 from .llms.heroku.chat.transformation import HerokuChatConfig
+from .llms.one_min.chat.handler import OneMinChatCompletion
+from .llms.one_min.chat.transformation import OneMinChatConfig
 from .llms.huggingface.embedding.handler import HuggingFaceEmbedding
 from .llms.lemonade.chat.transformation import LemonadeChatConfig
 from .llms.nlp_cloud.chat.handler import completion as nlp_cloud_chat_completion
@@ -260,6 +262,7 @@ openai_text_completions = OpenAITextCompletion()
 openai_audio_transcriptions = OpenAIAudioTranscription()
 openai_image_variations = OpenAIImageVariationsHandler()
 groq_chat_completions = GroqChatCompletion()
+one_min_chat_completions = OneMinChatCompletion()
 sap_gen_ai_hub_chat_completions = GenAIHubOrchestration()
 sap_gen_ai_hub_emb = GenAIHubOrchestration()
 azure_ai_embedding = AzureAIEmbedding()
@@ -2197,6 +2200,49 @@ def completion(  # type: ignore # noqa: PLR0915
                 encoding=_get_encoding(),
                 api_key=api_key,
                 logging_obj=logging,  # model call logging done inside the class as we make need to modify I/O to fit aleph alpha's requirements
+                client=client,
+            )
+        elif custom_llm_provider == "one_min":
+            api_base = (
+                api_base
+                or litellm.api_base
+                or get_secret("ONE_MIN_API_BASE")
+                or "https://api.1min.ai/v1"
+            )
+
+            # set API KEY
+            api_key = (
+                api_key
+                or litellm.api_key
+                or litellm.one_min_key
+                or get_secret("ONE_MIN_API_KEY")
+            )
+
+            headers = headers or litellm.headers
+
+            ## LOAD CONFIG - if set
+            config = litellm.OneMinChatConfig.get_config()
+            for k, v in config.items():
+                if (
+                    k not in optional_params
+                ):  # completion(top_k=3) > onemin_config(top_k=3) <- allows for dynamic variables to be passed in
+                    optional_params[k] = v
+
+            response = one_min_chat_completions.completion(
+                model=model,
+                messages=messages,
+                acompletion=acompletion,
+                api_base=api_base,
+                model_response=model_response,
+                optional_params=optional_params,
+                litellm_params=litellm_params,
+                shared_session=shared_session,
+                custom_llm_provider=custom_llm_provider,
+                timeout=timeout,
+                headers=headers,
+                encoding=_get_encoding(),
+                api_key=api_key,
+                logging_obj=logging,
                 client=client,
             )
         elif custom_llm_provider == "gigachat":

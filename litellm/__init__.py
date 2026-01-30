@@ -200,6 +200,7 @@ retry = True
 api_key: Optional[str] = None
 openai_key: Optional[str] = None
 groq_key: Optional[str] = None
+one_min_key: Optional[str] = None
 gigachat_key: Optional[str] = None
 databricks_key: Optional[str] = None
 openai_like_key: Optional[str] = None
@@ -1378,6 +1379,7 @@ if TYPE_CHECKING:
     from .llms.topaz.image_variations.transformation import TopazImageVariationConfig as TopazImageVariationConfig
     from litellm.llms.openai.completion.transformation import OpenAITextCompletionConfig as OpenAITextCompletionConfig
     from .llms.groq.chat.transformation import GroqChatConfig as GroqChatConfig
+    from .llms.one_min.chat.transformation import OneMinChatConfig as OneMinChatConfig
     from .llms.voyage.embedding.transformation import VoyageEmbeddingConfig as VoyageEmbeddingConfig
     from .llms.voyage.embedding.transformation_contextual import VoyageContextualEmbeddingConfig as VoyageContextualEmbeddingConfig
     from .llms.infinity.embedding.transformation import InfinityEmbeddingConfig as InfinityEmbeddingConfig

@@ -305,6 +305,16 @@ class ProxyInitializationHelpers:
     @staticmethod
     def _get_loop_type():
         """Helper function to determine the event loop type based on platform"""
+        # Check if UVICORN_LOOP is set in environment
+        env_loop = os.environ.get("UVICORN_LOOP")
+        if env_loop:
+            return env_loop
+
+        # For Python 3.14+, uvloop has compatibility issues
+        # Force asyncio instead
+        if sys.version_info >= (3, 14):
+            return "asyncio"
+
         if sys.platform in ("win32", "cygwin", "cli"):
             return None  # Let uvicorn choose the default loop on Windows
         return "uvloop"

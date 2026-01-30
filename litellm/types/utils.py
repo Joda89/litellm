@@ -3101,6 +3101,7 @@ class LlmProviders(str, Enum):
     A2A_AGENT = "a2a_agent"
     LANGGRAPH = "langgraph"
     MINIMAX = "minimax"
+    ONE_MIN = "one_min"
     SYNTHETIC = "synthetic"
     APERTIS = "apertis"
     NANOGPT = "nano-gpt"
