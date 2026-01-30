@@ -22,6 +22,9 @@ from .config import (
     ModelProvider,
     AVAILABLE_MODELS,
     IMAGE_MODELS,
+    IMAGE_VARIATOR_MODELS,
+    VIDEO_MODELS,
+    TTS_MODELS,
 )
 
 from .exceptions import (
@@ -44,6 +47,9 @@ __all__ = [
     "ModelProvider",
     "AVAILABLE_MODELS",
     "IMAGE_MODELS",
+    "IMAGE_VARIATOR_MODELS",
+    "VIDEO_MODELS",
+    "TTS_MODELS",
     # Exceptions
     "OneMinAIError",
     "OneMinAIAuthError",

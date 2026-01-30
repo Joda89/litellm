@@ -287,26 +287,45 @@ class OneMinChatCompletion:
         elif feature_type == FeatureType.CODE_GENERATOR.value:
             return {
                 "prompt": prompt,
-                "language": optional_params.pop("language", "python"),
-                "style": optional_params.pop("style", optional_params.pop("codeStyle", "standard")),
+                "webSearch": web_search,
+                "numOfSite": optional_params.pop(
+                    "num_sites",
+                    optional_params.pop("numOfSite", DEFAULT_CONFIG["web_search_num_sites"])
+                ),
+                "maxWord": optional_params.pop(
+                    "max_words",
+                    optional_params.pop("maxWord", DEFAULT_CONFIG["web_search_max_words"])
+                ),
             }
 
-        elif feature_type == FeatureType.CODE_EXPLAINER.value:
+        elif feature_type == FeatureType.IMAGE_TO_PROMPT.value:
             return {
-                "code": prompt,
-                "language": optional_params.pop("language", "python"),
-                "detailLevel": optional_params.pop("detail_level", optional_params.pop("detailLevel", "medium")),
+                "imageUrl": optional_params.pop("image_url", optional_params.pop("imageUrl", prompt)),
+                "mode": optional_params.pop("mode", "fast"),
+                "n": optional_params.pop("n", 1),
             }
 
-        elif feature_type == FeatureType.CODE_OPTIMIZER.value:
+        elif feature_type == FeatureType.TEXT_TO_VIDEO.value:
             return {
-                "code": prompt,
-                "language": optional_params.pop("language", "python"),
-                "optimizationType": optional_params.pop("optimization_type", optional_params.pop("optimizationType", "performance")),
+                "prompt": prompt,
+            }
+
+        elif feature_type == FeatureType.CONTENT_GENERATOR.value:
+            return {
+                "prompt": prompt,
+                "tone": optional_params.pop("tone", "professional"),
+                "language": optional_params.pop("language", "en"),
+            }
+
+        elif feature_type == FeatureType.TEXT_TO_SPEECH.value:
+            return {
+                "prompt": prompt,
             }
 
         else:
-            raise OneMinAIValidationError(f"Unknown feature type: {feature_type}")
+            return {
+                "prompt": prompt,
+            }
 
     def _convert_response(
         self,
