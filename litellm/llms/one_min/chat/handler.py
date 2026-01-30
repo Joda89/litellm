@@ -85,6 +85,16 @@ class OneMinChatCompletion:
         # Determine feature type
         feature_type = optional_params.pop("feature_type", FeatureType.CHAT_WITH_AI.value)
 
+        # Validate model supports this feature type
+        from ..config import is_model_supported_for_feature, get_supported_models_for_feature
+
+        if not is_model_supported_for_feature(model, feature_type):
+            supported_models = get_supported_models_for_feature(feature_type)
+            raise OneMinAIValidationError(
+                f"Model {model} is not supported for feature {feature_type}. "
+                f"Supported models: {', '.join(supported_models[:5])}..."
+            )
+
         # Extract parameters
         stream = optional_params.get("stream", False)
         web_search = optional_params.pop("web_search", optional_params.pop("webSearch", False))
@@ -122,8 +132,9 @@ class OneMinChatCompletion:
         if headers:
             request_headers.update(headers)
 
-        # Build URL
-        url = api_base or self.api_base
+        # Build URL - use the correct 1min.ai endpoint
+        # Don't use api_base from litellm as it adds /v1
+        url = DEFAULT_CONFIG["api_base"]
         if stream:
             url = f"{url}?isStreaming=true"
 
@@ -165,6 +176,9 @@ class OneMinChatCompletion:
 
             # Parse response
             response_data = response.json()
+
+            # Debug: print response structure
+            logger.info(f"1min.ai response: {json.dumps(response_data, indent=2)}")
 
             # Log the response
             logging_obj.post_call(
@@ -270,6 +284,27 @@ class OneMinChatCompletion:
                 )
             }
 
+        elif feature_type == FeatureType.CODE_GENERATOR.value:
+            return {
+                "prompt": prompt,
+                "language": optional_params.pop("language", "python"),
+                "style": optional_params.pop("style", optional_params.pop("codeStyle", "standard")),
+            }
+
+        elif feature_type == FeatureType.CODE_EXPLAINER.value:
+            return {
+                "code": prompt,
+                "language": optional_params.pop("language", "python"),
+                "detailLevel": optional_params.pop("detail_level", optional_params.pop("detailLevel", "medium")),
+            }
+
+        elif feature_type == FeatureType.CODE_OPTIMIZER.value:
+            return {
+                "code": prompt,
+                "language": optional_params.pop("language", "python"),
+                "optimizationType": optional_params.pop("optimization_type", optional_params.pop("optimizationType", "performance")),
+            }
+
         else:
             raise OneMinAIValidationError(f"Unknown feature type: {feature_type}")
 
@@ -281,31 +316,36 @@ class OneMinChatCompletion:
     ) -> ModelResponse:
         """Convert 1min.ai response to LiteLLM ModelResponse"""
 
+        # Handle 1min.ai response structure
         ai_record = response_data.get("aiRecord", {})
         detail = ai_record.get("aiRecordDetail", {})
-        result = detail.get("resultObject")
+        result = detail.get("resultObject", "")
 
+        # Convert result to string content
         if isinstance(result, str):
             content = result
         elif isinstance(result, list):
             content = json.dumps(result)
+        elif result:
+            content = str(result)
         else:
-            content = str(result) if result else ""
+            content = ""
 
+        # Build the model response
         model_response.id = ai_record.get("uuid", f"chatcmpl-{int(time.time())}")
         model_response.created = int(time.time())
         model_response.model = model
         model_response.object = "chat.completion"
 
-        model_response.choices = [{
-            "index": 0,
-            "message": {
-                "role": "assistant",
-                "content": content
-            },
-            "finish_reason": "stop"
-        }]
+        # Create choice object using namedtuple-like structure
+        from collections import namedtuple
+        Message = namedtuple("Message", ["role", "content"])
+        Choice = namedtuple("Choice", ["index", "message", "finish_reason"])
 
+        message = Message(role="assistant", content=content)
+        choice = Choice(index=0, message=message, finish_reason="stop")
+
+        model_response.choices = [choice]
         model_response.usage = Usage(
             prompt_tokens=0,
             completion_tokens=0,
@@ -369,7 +409,9 @@ class OneMinChatCompletion:
         if headers:
             request_headers.update(headers)
 
-        url = api_base or self.api_base
+        # Build URL - use the correct 1min.ai endpoint
+        # Don't use api_base from litellm as it adds /v1
+        url = DEFAULT_CONFIG["api_base"]
         if stream:
             url = f"{url}?isStreaming=true"
 

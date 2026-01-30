@@ -15,12 +15,38 @@ class FeatureType(str, Enum):
 
     Based on: https://docs.1min.ai/docs/api/ai-feature-api
     """
+    # Chat features
     CHAT_WITH_AI = "CHAT_WITH_AI"
     CHAT_WITH_IMAGE = "CHAT_WITH_IMAGE"
     CHAT_WITH_PDF = "CHAT_WITH_PDF"
     CHAT_WITH_YOUTUBE_VIDEO = "CHAT_WITH_YOUTUBE_VIDEO"
+
+    # Image features
     IMAGE_GENERATOR = "IMAGE_GENERATOR"
     IMAGE_VARIATOR = "IMAGE_VARIATOR"
+
+    # Code features
+    CODE_GENERATOR = "CODE_GENERATOR"
+    CODE_EXPLAINER = "CODE_EXPLAINER"
+    CODE_OPTIMIZER = "CODE_OPTIMIZER"
+
+    # Text features
+    TEXT_SUMMARIZER = "TEXT_SUMMARIZER"
+    TEXT_TRANSLATOR = "TEXT_TRANSLATOR"
+    TEXT_WRITER = "TEXT_WRITER"
+    TEXT_REWRITER = "TEXT_REWRITER"
+
+    # Audio features
+    SPEECH_TO_TEXT = "SPEECH_TO_TEXT"
+    TEXT_TO_SPEECH = "TEXT_TO_SPEECH"
+
+    # Analysis features
+    SENTIMENT_ANALYZER = "SENTIMENT_ANALYZER"
+    CONTENT_MODERATOR = "CONTENT_MODERATOR"
+
+    # Search features
+    WEB_SEARCH = "WEB_SEARCH"
+    IMAGE_SEARCH = "IMAGE_SEARCH"
 
     @classmethod
     def is_chat_feature(cls, feature_type: str) -> bool:
@@ -29,7 +55,7 @@ class FeatureType(str, Enum):
             cls.CHAT_WITH_AI.value,
             cls.CHAT_WITH_IMAGE.value,
             cls.CHAT_WITH_PDF.value,
-            cls.CHAT_WITH_YOUTUBE_VIDEO.value
+            cls.CHAT_WITH_YOUTUBE_VIDEO.value,
         ]
 
     @classmethod
@@ -37,7 +63,51 @@ class FeatureType(str, Enum):
         """Check if feature type is an image feature"""
         return feature_type in [
             cls.IMAGE_GENERATOR.value,
-            cls.IMAGE_VARIATOR.value
+            cls.IMAGE_VARIATOR.value,
+            cls.IMAGE_SEARCH.value,
+        ]
+
+    @classmethod
+    def is_code_feature(cls, feature_type: str) -> bool:
+        """Check if feature type is a code feature"""
+        return feature_type in [
+            cls.CODE_GENERATOR.value,
+            cls.CODE_EXPLAINER.value,
+            cls.CODE_OPTIMIZER.value,
+        ]
+
+    @classmethod
+    def is_text_feature(cls, feature_type: str) -> bool:
+        """Check if feature type is a text feature"""
+        return feature_type in [
+            cls.TEXT_SUMMARIZER.value,
+            cls.TEXT_TRANSLATOR.value,
+            cls.TEXT_WRITER.value,
+            cls.TEXT_REWRITER.value,
+        ]
+
+    @classmethod
+    def is_audio_feature(cls, feature_type: str) -> bool:
+        """Check if feature type is an audio feature"""
+        return feature_type in [
+            cls.SPEECH_TO_TEXT.value,
+            cls.TEXT_TO_SPEECH.value,
+        ]
+
+    @classmethod
+    def is_analysis_feature(cls, feature_type: str) -> bool:
+        """Check if feature type is an analysis feature"""
+        return feature_type in [
+            cls.SENTIMENT_ANALYZER.value,
+            cls.CONTENT_MODERATOR.value,
+        ]
+
+    @classmethod
+    def is_search_feature(cls, feature_type: str) -> bool:
+        """Check if feature type is a search feature"""
+        return feature_type in [
+            cls.WEB_SEARCH.value,
+            cls.IMAGE_SEARCH.value,
         ]
 
     @classmethod
@@ -118,6 +188,38 @@ IMAGE_MODELS = [
     "flux-pro", "flux-dev", "black-forest-labs/flux-schnell", "magic-art"
 ]
 
+# Feature-specific model allowlists (from 1min.ai docs when provided)
+FEATURE_SUPPORTED_MODELS: Dict[str, List[str]] = {
+    FeatureType.CODE_GENERATOR.value: [
+        # Alibaba
+        "qwen3-coder-plus",
+        "qwen3-coder-flash",
+        # Anthropic
+        "claude-sonnet-4-5-20250929",
+        "claude-sonnet-4-20250514",
+        "claude-opus-4-5-20251101",
+        "claude-opus-4-1-20250805",
+        "claude-haiku-4-5-20251001",
+        # DeepSeek
+        "deepseek-reasoner",
+        "deepseek-chat",
+        # GoogleAI
+        "gemini-3-pro-preview",
+        # OpenAI
+        "gpt-5.1-codex-mini",
+        "gpt-5.1-codex",
+        "gpt-5-chat-latest",
+        "gpt-5",
+        "gpt-4o",
+        "o3",
+        # xAI
+        "grok-code-fast-1",
+    ]
+}
+
+# Code generation models (used for CODE_GENERATOR feature)
+CODE_MODELS = list(FEATURE_SUPPORTED_MODELS.get(FeatureType.CODE_GENERATOR.value, []))
+
 
 # Default configuration
 DEFAULT_CONFIG = {
@@ -165,3 +267,36 @@ def is_valid_model(model: str) -> bool:
     """Check if a model is valid"""
     all_models = get_all_models()
     return model in all_models or model in IMAGE_MODELS
+
+
+def is_model_supported_for_feature(model: str, feature_type: str) -> bool:
+    """
+    Check if a model supports a specific feature type
+
+    Rules:
+    - If feature has an allowlist in FEATURE_SUPPORTED_MODELS, enforce it.
+    - Image features: Only specific models (IMAGE_MODELS)
+    - All other features: allowed unless restricted
+    """
+    # Enforce allowlist when provided
+    if feature_type in FEATURE_SUPPORTED_MODELS:
+        return model in FEATURE_SUPPORTED_MODELS[feature_type]
+
+    # Image generation only with specific models
+    if FeatureType.is_image_feature(feature_type):
+        return model in IMAGE_MODELS
+
+    # All other features are supported by all models
+    return True
+
+
+def get_supported_models_for_feature(feature_type: str) -> List[str]:
+    """Get all models that support a specific feature type"""
+    if feature_type in FEATURE_SUPPORTED_MODELS:
+        return FEATURE_SUPPORTED_MODELS[feature_type]
+
+    if FeatureType.is_image_feature(feature_type):
+        return IMAGE_MODELS
+
+    return get_all_models()
+
