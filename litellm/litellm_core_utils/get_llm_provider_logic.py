@@ -1,10 +1,9 @@
-from typing import Optional, Tuple
-
-import litellm
 from litellm.constants import REPLICATE_MODEL_NAME_WITH_ID_LENGTH
 from litellm.llms.openai_like.json_loader import JSONProviderRegistry
 from litellm.secret_managers.main import get_secret, get_secret_str
+from typing import Optional, Tuple
 
+import litellm
 from ..types.router import LiteLLM_Params
 
 
@@ -439,6 +438,8 @@ def get_llm_provider(  # noqa: PLR0915
             custom_llm_provider = "amazon_nova"
         elif model.startswith("sap/"):
             custom_llm_provider = "sap"
+        elif model.startswith("one_min/"):
+            custom_llm_provider = "one_min"
         if not custom_llm_provider:
             if litellm.suppress_debug_info is False:
                 print()  # noqa
@@ -711,6 +712,13 @@ def _get_openai_compatible_provider_info(  # noqa: PLR0915
             api_base,
             dynamic_api_key,
         ) = litellm.XAIChatConfig()._get_openai_compatible_provider_info(
+            api_base, api_key
+        )
+    elif custom_llm_provider == "one_min":
+        (
+            api_base,
+            dynamic_api_key,
+        ) = litellm.OneMinChatConfig()._get_openai_compatible_provider_info(
             api_base, api_key
         )
     elif custom_llm_provider == "zai":

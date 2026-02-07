@@ -2,10 +2,10 @@
 Transformation configuration for 1min.ai chat completions
 """
 
-from typing import List, Optional, Union
-
-from litellm.types.llms.openai import AllMessageValues
 from litellm.llms.openai_like.chat.transformation import OpenAILikeChatConfig
+from litellm.secret_managers.main import get_secret_str
+from litellm.types.llms.openai import AllMessageValues
+from typing import List, Optional, Tuple, Union
 
 
 class OneMinChatConfig(OpenAILikeChatConfig):
@@ -51,6 +51,25 @@ class OneMinChatConfig(OpenAILikeChatConfig):
         for key, value in locals_.items():
             if key != "self" and value is not None:
                 setattr(self.__class__, key, value)
+
+    def _get_openai_compatible_provider_info(
+            self,
+            api_base: Optional[str],
+            api_key: Optional[str],
+    ) -> Tuple[Optional[str], Optional[str]]:
+        """
+        Get provider info for 1min.ai API.
+
+        Returns:
+            Tuple of (api_base, api_key)
+        """
+        api_base = (
+                api_base
+                or get_secret_str("ONE_MIN_API_BASE")
+                or "https://api.1min.ai/api/features"
+        )
+        dynamic_api_key = api_key or get_secret_str("ONE_MIN_API_KEY")
+        return api_base, dynamic_api_key
 
     @property
     def custom_llm_provider(self) -> Optional[str]:
