@@ -7,16 +7,14 @@ This handler transforms LiteLLM requests to 1min.ai API format.
 Based on: https://docs.1min.ai/docs/api/ai-feature-api
 """
 
+import httpx
 import json
 import logging
 import time
-from typing import Any, Callable, Dict, List, Optional, Union
-
-import httpx
-
+from litellm.litellm_core_utils.litellm_logging import Logging as LiteLLMLogging
 from litellm.llms.custom_httpx.http_handler import AsyncHTTPHandler, HTTPHandler
 from litellm.types.utils import ModelResponse, Usage
-from litellm.litellm_core_utils.litellm_logging import Logging as LiteLLMLogging
+from typing import Any, Callable, Dict, List, Optional, Union
 
 from ..config import DEFAULT_CONFIG, FeatureType
 from ..exceptions import (
@@ -26,7 +24,6 @@ from ..exceptions import (
     OneMinAITimeoutError,
     OneMinAIValidationError,
 )
-
 
 logger = logging.getLogger(__name__)
 
@@ -356,13 +353,11 @@ class OneMinChatCompletion:
         model_response.model = model
         model_response.object = "chat.completion"
 
-        # Create choice object using namedtuple-like structure
-        from collections import namedtuple
-        Message = namedtuple("Message", ["role", "content"])
-        Choice = namedtuple("Choice", ["index", "message", "finish_reason"])
+        # Use proper Pydantic types so JSON serialization produces dicts, not lists
+        from litellm.types.utils import Choices, Message
 
         message = Message(role="assistant", content=content)
-        choice = Choice(index=0, message=message, finish_reason="stop")
+        choice = Choices(index=0, message=message, finish_reason="stop")
 
         model_response.choices = [choice]
         model_response.usage = Usage(

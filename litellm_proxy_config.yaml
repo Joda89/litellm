@@ -1,0 +1,82 @@
+model_list:
+  # ===================================================================
+  # Claude (Anthropic API) - priorité 1
+  #
+  # Limites Tier 1 pour Claude Sonnet 4.x :
+  #   RPM: 50, ITPM: 30 000, OTPM: 8 000
+  #
+  # Si tu es sur un tier supérieur, ajuste ces valeurs :
+  #   Tier 2 : rpm=1000, tpm=540_000  (ITPM 450K + OTPM 90K)
+  #   Tier 3 : rpm=2000, tpm=960_000  (ITPM 800K + OTPM 160K)
+  #   Tier 4 : rpm=4000, tpm=2_400_000 (ITPM 2M + OTPM 400K)
+  # ===================================================================
+  - model_name: default-model
+    litellm_params:
+      model: anthropic/claude-sonnet-4-20250514
+      api_key: os.environ/ANTHROPIC_API_KEY
+      rpm: 50
+      tpm: 38_000       # ITPM 30K + OTPM 8K (Tier 1)
+      timeout: 120
+      max_retries: 2
+
+  # ===================================================================
+  # 1min.ai Pro - fallback 2
+  #
+  # Plan Pro : 1 450 000 crédits/mois (450K gratuits + 1M pro)
+  # Pas de RPM/TPM documenté, on met des limites raisonnables
+  # pour ne pas épuiser les crédits trop vite.
+  # ~1000 mots ≈ 4000 crédits → ~362 requêtes longues/mois
+  # ===================================================================
+  - model_name: 1min-fallback
+    litellm_params:
+      model: one_min/gpt-4o
+      api_key: os.environ/ONE_MIN_API_KEY
+      rpm: 30
+      timeout: 120
+      max_retries: 2
+
+  # ===================================================================
+  # llama.cpp local - fallback 3 (ultime recours)
+  #
+  # Aucune limite externe, le hardware local est la seule contrainte.
+  # Adapter api_base et le nom du modèle selon ta config llama.cpp.
+  #
+  # Lancer avec :
+  #   llama-server -m ton-modele.gguf --port 8080
+  # ===================================================================
+  - model_name: local-fallback
+    litellm_params:
+      model: openai/local-model
+      api_base: http://localhost:8080/v1
+      api_key: no-key-needed
+      timeout: 300       # plus lent en local, on laisse du temps
+      max_retries: 1
+
+router_settings:
+  routing_strategy: simple-shuffle
+  enable_pre_call_checks: true
+
+  # Cooldown : après 3 échecs, le modèle est mis en pause 60s
+  allowed_fails: 3
+  cooldown_time: 60
+
+  # Politique de retry par type d'erreur
+  retry_policy:
+    RateLimitErrorRetries: 0       # pas de retry, fallback direct
+    AuthenticationErrorRetries: 0
+    TimeoutErrorRetries: 2
+    InternalServerErrorRetries: 2
+
+  # Chaîne de fallback : Claude → 1min.ai → llama.cpp local
+  fallbacks:
+    - {"default-model": ["1min-fallback"]}
+    - {"1min-fallback": ["local-fallback"]}
+
+litellm_settings:
+  drop_params: true
+  num_retries: 3
+  request_timeout: 120
+  default_fallbacks: ["local-fallback"]
+
+general_settings:
+  master_key: os.environ/LITELLM_MASTER_KEY
